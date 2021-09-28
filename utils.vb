@@ -137,3 +137,86 @@ Function ArrayBinarySearch(SearchArray, ValueSearch, Optional SearchArrayCol = 1
     ArrayBinarySearch = False
     
 End Function
+
+Function SLA24h(StartDatetime, EndDatetime)
+    Dim Start_Date As Date, End_Date As Date
+    Dim FirstDayDuration As Double, DaysDurationInHours As Double
+    Dim LastDayDuration As Double, Start_Time As Double, End_Time As Double
+
+    If EndDatetime = Empty Or IsNull(EndDatetime) Then EndDatetime = Now()
+    
+    Start_Date = Int(StartDatetime)
+    End_Date = Int(EndDatetime)
+    Start_Time = StartDatetime - Start_Date
+    End_Time = EndDatetime - End_Date
+    
+    If Start_Time < 8 / 24 Then Start_Time = 8 / 24
+    If End_Time < 8 / 24 Then End_Time = 8 / 24
+    
+    FirstDayDuration = (24 - Start_Time * 24)
+    LastDayDuration = (End_Time * 24 - 8)
+    
+    If End_Date - Start_Date > 1 Then
+        DaysDurationInHours = (End_Date - Start_Date - 1) * 16
+        SLA24h = DaysDurationInHours + FirstDayDuration + LastDayDuration
+    ElseIf End_Date - Start_Date = 1 Then
+        DaysDurationInHours = 0
+        SLA24h = FirstDayDuration + LastDayDuration
+    Else
+        DaysDurationInHours = 0
+        SLA24h = DaysDurationInHours + ((End_Time - Start_Time) * 24)
+    End If
+    
+End Function
+
+Function Sla8_21_Seg_Sex(StartDatetime, EndDatetime)
+    Dim DiaStartDate As Date, DiaEndDate As Date, i As Date
+    Dim HoraStartDate As Double, HoraEndDate As Double, tempHoras As Double
+    Dim tempDiasDecorridos As Integer, diasEmHoras As Integer, tempDiaSemana As Integer
+    
+    If EndDatetime = Empty Or IsNull(EndDatetime) Then EndDatetime = Now()
+    
+    DiaStartDate = Int(StartDatetime)
+    DiaEndDate = Int(EndDatetime)
+    HoraStartDate = StartDatetime - Int(StartDatetime)
+    HoraEndDate = EndDatetime - Int(EndDatetime)
+    
+'Caso a hora de inicio seja fora de horas, depois das 21h, passa para o dia seguinte
+    If HoraStartDate > 21 / 24 Then
+        DiaStartDate = DiaStartDate + 1
+        HoraStartDate = 8 / 24
+    End If
+    
+'Caso a data de inicio seja Sábado
+'Adiciona 2 dias para começar na Segunda-Feira
+'Caso a data de inicio seja Domingo
+'Adiciona 1 dia para começar na Segunda-Feira
+    Select Case Weekday(DiaStartDate, vbMonday)
+        Case 6 'Sábado
+            DiaStartDate = DiaStartDate + 2
+            HoraStartDate = 8 / 24
+        Case 7 'Domingo
+            DiaStartDate = DiaStartDate + 1
+            HoraStartDate = 8 / 24
+    End Select
+    
+'Caso a hora de inicio seja antes da hora de inicio
+'acerta para as 8h
+    If HoraStartDate < 8 / 24 Then
+        HoraStartDate = 8 / 24
+    End If
+    
+'Contar dias decorridos
+    For i = DiaStartDate To DiaEndDate
+        If i = DiaEndDate Then Exit For
+        tempDiaSemana = Weekday(i, vbMonday)
+        If Not tempDiaSemana = 6 And Not tempDiaSemana = 7 Then
+                tempDiasDecorridos = tempDiasDecorridos + 1
+        End If
+    Next i
+    
+    diasEmHoras = tempDiasDecorridos * 13 ' por serem 13 horas por dia
+    tempHoras = (HoraEndDate - HoraStartDate) * 24
+    
+    Sla8_21_Seg_Sex = diasEmHoras + tempHoras
+End Function
